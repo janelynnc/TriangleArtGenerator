@@ -1,0 +1,147 @@
+<html>
+<head>
+<script src="p5.min.js"></script>
+<script>
+"use strict";
+
+// your code goes here
+
+// number of alternative designs to consider
+// within a single generation
+const numAlternatives = 10;
+
+// controls amount of change in a single mutation
+const mutationAmount = 0.008;
+
+// other constants needed to represent designs
+const genesPerIndividual = 21;
+const paramsPerGene = 11;
+
+
+// remember the best design ever seen
+let bestDesign;
+let bestScore;
+
+// remember the current design
+// (best of the most recent generation)
+let currentDesign;
+let currentScore;
+
+// store the image we are trying to recreate
+let targetImage;
+function preload() {
+	targetImage = loadImage(ideal.src);
+}
+function setup() {
+    pixelDensity(1);
+    createCanvas(
+		targetImage.width,
+		targetImage.height);
+
+    targetImage.loadPixels();
+
+    currentDesign = generate();
+    bestDesign = currentDesign;
+
+    currentScore = Number.NEGATIVE_INFINITY;
+    bestScore = currentScore;
+}
+
+function draw() {
+    evolve();
+    if (currentScore > bestScore) {
+        console.log(	"global improvement",
+				currentScore);
+        bestDesign = currentDesign;
+        bestScore = currentScore;
+    }
+
+    if (keyIsDown(SHIFT)) {
+        drawDesign(currentDesign);
+    } else {
+        drawDesign(bestDesign);
+    }
+}
+
+function evolve() {
+    let localScore = Number.NEGATIVE_INFINITY;
+    let localDesign = currentDesign;
+    for (let i = 0; i < numAlternatives; i++) {
+        let alternativeDesign = mutate(currentDesign);
+        drawDesign(alternativeDesign);
+        let alternativeScore = evaluateFitness();
+        if (alternativeScore > localScore) {
+            localDesign = alternativeDesign;
+            localScore = alternativeScore;
+        }
+    }
+    currentDesign = localDesign;
+    currentScore = localScore;
+}
+
+function generate() {
+    let design = [];
+    for (let g = 0; g < genesPerIndividual; g++) {
+        for (let p = 0; p < paramsPerGene; p++) {
+            design.push(noise(p));
+        }
+    }
+    return design;
+}
+
+function mutate(design) {
+    let mutant = design.slice();
+    for (let i = 0; i < mutant.length; i++) {
+        mutant[i] = constrain(mutant[i] +randomGaussian(0,mutationAmount),0,1);
+			  if(i>3 && i<10){
+					  mutant[i] = constrain(randomGaussian(mutant[i],mutationAmount),0,1);
+				}
+
+    }
+
+    return mutant;
+}
+
+function drawDesign(design) {
+    noFill();
+    strokeCap(SQUARE);
+    background(design[0]*255,design[1]*255,design[2]*255);
+		for (let g = genesPerIndividual-3; g < genesPerIndividual; g++) {
+        let params = design.slice(g*paramsPerGene, (g+1)*paramsPerGene);
+        //stroke(255);
+        //strokeWeight(1);
+				noStroke();
+				fill(params[0]*255,params[1]*255,params[2]*255,params[3]*255);
+        ellipse(params[4]*(width/2), params[5]*(height/2),params[6]*width, params[6]*width);
+    }
+    for (let g = 0; g < genesPerIndividual-3; g++) {
+        let params = design.slice(g*paramsPerGene, (g+1)*paramsPerGene);
+        //stroke(params[0]*255,params[1]*255,params[2]*255,params[3]*255);
+        //strokeWeight(width/(g+g));
+				noStroke();
+				fill(params[0]*255,params[1]*255,params[2]*255,params[3]*255);
+        triangle(params[4]*width, params[5]*height,params[6]*width, params[7]*height,params[8]*width, params[9]*height);
+    }
+}
+
+function evaluateFitness() {
+    loadPixels();
+    let score = 0;
+    for (let p = 0; p < pixels.length; p += 9) {
+        let diff = (pixels[p]-targetImage.pixels[p]);
+        score -= Math.abs(diff);
+    }
+    return score;
+}
+
+
+</script>
+<div>
+	<p>My technical collaborator is Toby Kwan. My source image is of a ship floating above the clouds with other planets in the background. The source image is from http://www.twitrcovers.com/twitter-covers/mass-effect-ii-normandy/. We decided to have a theme of backgrounds, so I decided to use a Mass Effect background. I used triangles to generate the image, and after seeing a suggestion from the professor, I added ellipses to add the big planet in the background. I used 21 genes per individual and 10 params per gene. Each of our genes in our genotype is between 0 and 1. Both of us used 4 genotypes for the colors of red, green, blue, and alpha. I used 6 genotypes for the points of vertices of the triangles. In the generated image, the light blue line in the middle and the yellow fog are shown. The silhouette of the bigger planet or moon is sort of shown but angular. I chose triangles because the slice of blue made it look like there were two big triangles and that the image was at an angle, so I thought that it would be interesting. For mutate, we changed the mutation amount to fit our picture and we also decided to take a randomGaussian value cantered at the current mutation. For generate we both used noise() instead of random to start off at clusters.
+ </p>
+</div>
+</head>
+<body>
+<img id="ideal" src="mebkg.jpg"/>
+</body>
+</html>
